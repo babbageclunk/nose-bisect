@@ -16,9 +16,9 @@ def flatten_suite(suite):
         else:
             yield child
 
-def slice_tests(tests, lower, upper):
-    items = len(tests)
-    return tests[int(lower * items):int(upper * items)]
+def fractional_slice(items, lower, upper):
+    count = len(items)
+    return items[int(lower * count):int(upper * count)]
 
 def dump_tree(item, indent=0, tests=False):
     spaces = ' ' * indent
@@ -134,7 +134,7 @@ class Bisector(Plugin):
             preceding_tests.append(single_test)
         assert canary, 'Canary test {0} not found'.format(self.canary_name)
 
-        candidates = slice_tests(preceding_tests, self.lower, self.upper)
+        candidates = fractional_slice(preceding_tests, self.lower, self.upper)
         candidates.append(canary)
         result = rebuild_context_suite(candidates)
         return result
