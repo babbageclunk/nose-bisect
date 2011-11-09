@@ -30,6 +30,7 @@ def dump_tree(item, indent=0, tests=False):
         dump_tree(child, indent + 2, tests)
 
 class Node(object):
+    """Represents a tree of context suites being built."""
 
     def __init__(self, context):
         self.context = context
