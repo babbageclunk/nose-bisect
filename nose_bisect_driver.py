@@ -4,7 +4,7 @@ and the canary is failing.
 """
 
 from argparse import ArgumentParser
-from collections import deque, namedtuple
+from collections import namedtuple
 import re
 from subprocess import Popen, PIPE
 import sys
@@ -21,20 +21,11 @@ def run_nose(canary, interval, verbose=False):
     print
     return Popen(nose_cmd, stderr=PIPE)
 
-COUNT_RE = re.compile(r'^Ran (\d+) test')
-FAILURES_RE = re.compile(r'^FAILED.*failures=(\d+).*')
-ERRORS_RE = re.compile(r'^FAILED.*errors=(\d+).*')
-
-def extract_results(lines):
-    count_line, _, status_line = lines
-    match = COUNT_RE.match(count_line)
-    assert match, 'Couldn\'t parse line {0!r}'.format(count_line)
-    test_count = int(match.group(1))
-    match = ERRORS_RE.match(status_line)
-    error_count = int(match.group(1)) if match else 0
-    match = FAILURES_RE.match(status_line)
-    fail_count = int(match.group(1)) if match else 0
-    return test_count, error_count, fail_count
+PATTERNS = dict(
+    count = re.compile(r'^Ran (\d+) test'),
+    errors = re.compile(r'^FAILED.*errors=(\d+).*'),
+    failures = re.compile(r'^FAILED.*failures=(\d+).*')
+    )
 
 RunResult = namedtuple('RunResult', 'passed tests errors fails')
 
@@ -42,13 +33,18 @@ def run_test_pass(canary, interval, verbose):
     process = run_nose(canary, interval, verbose)
     # Collect the last 3 lines of stderr output to determine how many
     # tests were run, and how many failed.
-    last_lines = deque('' * 3, 3)
+    found = {}
     for line in process.stderr:
-        last_lines.append(line)
+        for name, pattern in PATTERNS.items():
+            match = pattern.match(line)
+            if match:
+                if name in found:
+                    raise Exception('Found too many {0} lines'.format(name))
+                found[name] = int(match.group(1))
         sys.stderr.write(line)
     return_code = process.wait()
-    tests, errors, fails = extract_results(last_lines)
-    result = RunResult(return_code == 0, tests, errors, fails)
+    result = RunResult(return_code == 0,
+                       *[found.get(name, 0) for name in sorted(PATTERNS)])
     print result
     print
     return result
