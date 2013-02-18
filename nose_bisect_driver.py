@@ -25,7 +25,7 @@ PATTERNS = dict(
     count = re.compile(r'^Ran (\d+) test'),
     errors = re.compile(r'^FAILED.*errors=(\d+).*'),
     failures = re.compile(r'^FAILED.*failures=(\d+).*')
-    )
+)
 
 RunResult = namedtuple('RunResult', 'passed tests errors fails')
 
@@ -38,8 +38,8 @@ def run_test_pass(canary, interval, verbose):
         for name, pattern in PATTERNS.items():
             match = pattern.match(line)
             if match:
-                if name in found:
-                    raise Exception('Found too many {0} lines'.format(name))
+                # Allow the last match to overwrite earlier ones -
+                # they might have come from test output.
                 found[name] = int(match.group(1))
         sys.stderr.write(line)
     return_code = process.wait()
