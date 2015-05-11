@@ -61,7 +61,12 @@ def main(args):
         low_interval, high_interval = bisect(interval)
 
         result = run_test_pass(args.canary, low_interval, verbose)
-        if result.tests == 2:
+
+        if result.tests == 2 and not result.passed:
+            break # Found it!
+        elif result.tests < 2:
+            # Run the other branch, this one's empty.
+            run_test_pass(args.canary, high_interval, verbose)
             break
 
         if args.sanity_check:
